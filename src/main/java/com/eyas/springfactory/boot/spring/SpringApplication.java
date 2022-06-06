@@ -49,14 +49,17 @@ public class SpringApplication {
         ClassLoader classLoader = clazz.getClassLoader();
         packagePath = packagePath.replace(".", "/");
         URL resource = classLoader.getResource(packagePath);
+        List<String> classNameList = new ArrayList<>();
+        if (null == resource){
+            return classNameList;
+        }
         File file = new File(resource.getFile());
         System.out.println("----------");
-        List<String> classNameList = new ArrayList<>();
         if (file.isDirectory()) {
             File[] files = file.listFiles();
             // 判空
             if (null == files){
-                return null;
+                return classNameList;
             }
             // -todo-使用递归来处理文件
             for (File f : files) {
@@ -79,21 +82,14 @@ public class SpringApplication {
                 }
             }
         }
-        if (!(classNameList.size() > 0)){
-            try {
-                throw new Exception("包路径为空");
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
         return classNameList;
     }
 
     /**
      * 获取类路径名称
      *
-     * @param file
-     * @return
+     * @param file 文件
+     * @return String
      */
     private String getClassPathName(File file){
         String fileName = file.getAbsolutePath();
@@ -109,7 +105,7 @@ public class SpringApplication {
     private List<Class> genBeanClasses(List<String> packagePathList, ClassLoader classLoader){
         // 通过路径装在bean
         List<Class> beanClasses = new ArrayList<>();
-        packagePathList.stream().forEach(s -> {
+        packagePathList.forEach(s -> {
             try {
                 Class<?> clazz2 = classLoader.loadClass(s);
                 beanClasses.add(clazz2);
@@ -121,7 +117,7 @@ public class SpringApplication {
     }
 
     private void createBeanDefinition(List<Class> beanClassList){
-        beanClassList.stream().forEach(clazz->{
+        beanClassList.forEach(clazz->{
             BeanDefinition beanDefinition = new BeanDefinition();
             if (clazz.isAnnotationPresent(Component.class)){
                 // 创建对象
@@ -156,8 +152,10 @@ public class SpringApplication {
         beanDefinitionMap.forEach((beanName, beanDefinition) -> {
             if (ScopeEnum.singleton.equals(beanDefinition.getScope())){
                 // 如果是单例
-                Object object = this.doCreateBean(beanName, beanDefinition);
-                singletonObjects.put(beanName, object);
+                Object object = this.doCreateBean(beanDefinition);
+                if (null != object) {
+                    singletonObjects.put(beanName, object);
+                }
             }
         });
     }
@@ -173,7 +171,7 @@ public class SpringApplication {
             // 创建bean
             BeanDefinition beanDefinition = beanDefinitionMap.get(beanName);
             // 创建bean
-            return this.doCreateBean(beanName, beanDefinition);
+            return this.doCreateBean(beanDefinition);
         }
     }
 
@@ -183,7 +181,7 @@ public class SpringApplication {
         return this.getBean(beanName);
     }
 
-    private Object doCreateBean(String beanName, BeanDefinition beanDefinition){
+    private Object doCreateBean(BeanDefinition beanDefinition){
         // 创建对象
         Class beanClass = beanDefinition.getBeanClass();
 
@@ -204,13 +202,7 @@ public class SpringApplication {
                 }
             }
             return instance;
-        } catch (NoSuchMethodException e) {
-            e.printStackTrace();
-        }catch (InstantiationException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        } catch (InvocationTargetException e) {
+        } catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
             e.printStackTrace();
         }
         return null;
