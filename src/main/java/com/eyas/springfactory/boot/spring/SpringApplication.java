@@ -187,8 +187,15 @@ public class SpringApplication {
 
         try {
             // 实例化
-            Constructor constructor = beanClass.getDeclaredConstructor();
+            Constructor[] constructorList = beanClass.getDeclaredConstructors();
             // 创建对象
+            Constructor constructor = null;
+            if (constructorList.length > 0){
+                constructor = constructorList[0];
+            }
+            if (null == constructor){
+                return null;
+            }
             Object instance = constructor.newInstance();
             // 填充属性
             Field[] fields = beanClass.getDeclaredFields();
@@ -202,7 +209,7 @@ public class SpringApplication {
                 }
             }
             return instance;
-        } catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
             e.printStackTrace();
         }
         return null;
