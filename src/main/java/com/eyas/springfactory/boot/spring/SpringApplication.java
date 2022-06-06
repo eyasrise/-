@@ -1,6 +1,5 @@
 package com.eyas.springfactory.boot.spring;
 
-import com.eyas.springfactory.boot.spring.ComponentScan;
 import com.eyas.springfactory.boot.utils.StringUtils;
 
 import java.io.File;
@@ -55,32 +54,56 @@ public class SpringApplication {
         List<String> classNameList = new ArrayList<>();
         if (file.isDirectory()) {
             File[] files = file.listFiles();
+            // 判空
+            if (null == files){
+                return null;
+            }
+            // -todo-使用递归来处理文件
             for (File f : files) {
                 if (f.isDirectory()) {
                     File[] files2 = f.listFiles();
+                    if (null == files2){
+                        continue;
+                    }
                     for (File f1 : files2) {
-                        String fileName = f1.getAbsolutePath();
-                        System.out.println(fileName);
-                        if (fileName.endsWith(".class")) {
-                            String className = fileName.substring(fileName.indexOf("com"), fileName.indexOf(".class"));
-                            className = className.replace("/", ".");
-                            System.out.println(className);
-                            classNameList.add(className);
+                        String classPathName = getClassPathName(f1);
+                        if (null != classPathName){
+                            classNameList.add(classPathName);
                         }
                     }
                 } else {
-                    String fileName = f.getAbsolutePath();
-                    System.out.println(fileName);
-                    if (fileName.endsWith(".class")) {
-                        String className = fileName.substring(fileName.indexOf("com"), fileName.indexOf(".class"));
-                        className = className.replace("/", ".");
-                        System.out.println(className);
-                        classNameList.add(className);
+                    String classPathName = getClassPathName(f);
+                    if (null != classPathName){
+                        classNameList.add(classPathName);
                     }
                 }
             }
         }
+        if (!(classNameList.size() > 0)){
+            try {
+                throw new Exception("包路径为空");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
         return classNameList;
+    }
+
+    /**
+     * 获取类路径名称
+     *
+     * @param file
+     * @return
+     */
+    private String getClassPathName(File file){
+        String fileName = file.getAbsolutePath();
+        System.out.println(fileName);
+        if (fileName.endsWith(".class")) {
+            String className = fileName.substring(fileName.indexOf("com"), fileName.indexOf(".class"));
+            className = className.replace("/", ".");
+            return className;
+        }
+        return null;
     }
 
     private List<Class> genBeanClasses(List<String> packagePathList, ClassLoader classLoader){
@@ -98,22 +121,22 @@ public class SpringApplication {
     }
 
     private void createBeanDefinition(List<Class> beanClassList){
-        beanClassList.stream().forEach(clazzz->{
+        beanClassList.stream().forEach(clazz->{
             BeanDefinition beanDefinition = new BeanDefinition();
-            if (clazzz.isAnnotationPresent(Component.class)){
+            if (clazz.isAnnotationPresent(Component.class)){
                 // 创建对象
-                beanDefinition.setBeanClass(clazzz);
+                beanDefinition.setBeanClass(clazz);
                 // 要么Spring自动生成，要么从Component注解上获取
-                Component component = (Component) clazzz.getAnnotation(Component.class);
+                Component component = (Component) clazz.getAnnotation(Component.class);
                 String beanName = component.value();
                 if ("".equals(beanName)){
                     // 如果是空，使用class的
-                    beanName = StringUtils.lowerFirst(clazzz.getSimpleName());
+                    beanName = StringUtils.lowerFirst(clazz.getSimpleName());
                 }
 
                 // 解析scope--只正对非懒加载的单例创建对象
-                if (clazzz.isAnnotationPresent(Scope.class)){
-                    Scope scope = (Scope) clazzz.getAnnotation(Scope.class);
+                if (clazz.isAnnotationPresent(Scope.class)){
+                    Scope scope = (Scope) clazz.getAnnotation(Scope.class);
                     // 获取
                     if (ScopeEnum.singleton.equals(scope.value())){
                         // 如果是单例
@@ -195,7 +218,7 @@ public class SpringApplication {
     }
 
     // 获取注解名字
-    public String getComponentName(Class clazz){
+    private String getComponentName(Class clazz){
         // 要么Spring自动生成，要么从Component注解上获取
         Component component = (Component) clazz.getAnnotation(Component.class);
         String beanName = component.value();
