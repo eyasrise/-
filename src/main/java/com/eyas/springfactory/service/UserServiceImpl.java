@@ -1,12 +1,10 @@
 package com.eyas.springfactory.service;
 
-import com.eyas.springfactory.boot.spring.Autowired;
-import com.eyas.springfactory.boot.spring.Component;
-import com.eyas.springfactory.boot.spring.Scope;
-import com.eyas.springfactory.boot.spring.ScopeEnum;
+import com.eyas.springfactory.boot.spring.*;
 
 @Component("userService")
 @Scope(ScopeEnum.singleton)
+@Transactional
 public class UserServiceImpl {
 
     @Autowired

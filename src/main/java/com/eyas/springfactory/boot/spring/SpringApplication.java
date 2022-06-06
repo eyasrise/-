@@ -1,11 +1,15 @@
 package com.eyas.springfactory.boot.spring;
 
 import com.eyas.springfactory.boot.utils.StringUtils;
+import net.sf.cglib.proxy.Enhancer;
+import net.sf.cglib.proxy.MethodInterceptor;
+import net.sf.cglib.proxy.MethodProxy;
 
 import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -207,6 +211,22 @@ public class SpringApplication {
                     field.setAccessible(true);
                     field.set(instance, object);
                 }
+            }
+
+            // aop
+            Object finalInstance = instance;
+            if (beanClass.isAnnotationPresent(Transactional.class)){
+                // 进行代理
+                Enhancer enhancer = new Enhancer();
+                enhancer.setSuperclass(beanClass);
+                enhancer.setCallback((MethodInterceptor) (o, method, objects, methodProxy) -> {
+                    System.out.println("事务开始");
+                    Object result = method.invoke(finalInstance, objects);
+                    System.out.println(beanClass.getSimpleName());
+                    System.out.println("事务结束");
+                    return result;
+                });
+                instance = enhancer.create();
             }
             return instance;
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
